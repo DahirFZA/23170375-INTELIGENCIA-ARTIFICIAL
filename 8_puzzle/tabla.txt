@@ -1,0 +1,8 @@
+TABLA COMPARATIVA - 8 PUZZLE
+Estado inicial: (1, 2, 3, 4, 0, 6, 7, 5, 8)
+
+Algoritmo            | Pasos        | Nodos explorados   | Tiempo      
+-----------------------------------------------------------------------
+BFS (Anchura)        | 2            | 9                  | 0.055 ms    
+DFS (Profundidad)    | 22           | 65989              | 138.315 ms  
+A* (Manhattan)       | 2            | 3                  | 0.044 ms    
