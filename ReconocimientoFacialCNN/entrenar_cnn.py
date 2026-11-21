@@ -1,10 +1,7 @@
-#Zavala Arredondo Dahir Fernando
-#23170375
 import json
 import os
 import matplotlib
 
-# Configurar backend sin ventana gráfica si se ejecuta en un entorno remoto sin pantalla
 if not os.environ.get("DISPLAY"):
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -18,46 +15,41 @@ RUTA_CLASES = "ReconocimientoFacialCNN/etiquetas.json"
 RUTA_GRAFICA = "ReconocimientoFacialCNN/metricas_entrenamiento.png"
 TAM_IMG = (160, 160)
 BATCH_SIZE = 16
-EPOCAS = 35
+EPOCAS = 25
 
 
 def construir_red(num_clases):
-    """Define la arquitectura CNN con preprocesamiento, bloques convolucionales y regularización."""
-    # Transformaciones aleatorias aplicadas en tiempo de entrenamiento para evitar sobreajuste
+    """Construye un clasificador usando MobileNetV2 preentrenada como extractor de rasgos."""
     aumento_datos = models.Sequential([
         layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.12),
-        layers.RandomZoom(0.15),
-        layers.RandomContrast(0.15),
+        layers.RandomRotation(0.1),
+        layers.RandomZoom(0.1),
     ])
 
+    base_modelo = tf.keras.applications.MobileNetV2(
+        input_shape=(TAM_IMG[0], TAM_IMG[1], 3),
+        include_top=False,
+        weights="imagenet",
+    )
+    base_modelo.trainable = False
+
     entradas = layers.Input(shape=(TAM_IMG[0], TAM_IMG[1], 3))
-    # Normalizar valores de píxeles del rango [0, 255] a [0, 1]
-    x = layers.Rescaling(1.0 / 255.0)(entradas)
-    x = aumento_datos(x)
+    x = aumento_datos(entradas)
+    # Normalizar píxeles al rango [-1, 1] requerido por MobileNetV2
+    x = tf.keras.applications.mobilenet_v2.preprocess_input(x)
+    x = base_modelo(x, training=False)
 
-    # Bloques de extracción de características con profundidad creciente
-    for filtros in (32, 64, 128, 256):
-        x = layers.Conv2D(filtros, (3, 3), padding="same", use_bias=False)(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.Activation("relu")(x)
-        x = layers.Conv2D(filtros, (3, 3), padding="same", use_bias=False)(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.Activation("relu")(x)
-        x = layers.MaxPooling2D((2, 2))(x)
-        x = layers.Dropout(0.25)(x)
-
-    # Clasificador denso con reducción espacial global y salida multiclase
+    # Bloque de regularización y salida multiclase
     x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(192, use_bias=False)(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-    x = layers.Dropout(0.45)(x)
+    x = layers.Dropout(0.4)(x)
+    x = layers.Dense(128, activation="relu")(x)
+    x = layers.Dropout(0.3)(x)
     salidas = layers.Dense(num_clases, activation="softmax")(x)
 
     modelo = models.Model(inputs=entradas, outputs=salidas)
     modelo.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=8e-4),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
         loss="categorical_crossentropy",
         metrics=["accuracy"],
     )
@@ -65,12 +57,12 @@ def construir_red(num_clases):
 
 
 def entrenar():
-    """Carga el dataset dividido en 85% entrenamiento y 15% validación, entrena y guarda curvas."""
+    """Carga el dataset dividido en 80% entrenamiento y 20% validación, entrena y guarda curvas."""
     ds_entrenamiento = tf.keras.utils.image_dataset_from_directory(
         RUTA_DATASET,
-        validation_split=0.15,
+        validation_split=0.20,
         subset="training",
-        seed=73,
+        seed=42,
         image_size=TAM_IMG,
         batch_size=BATCH_SIZE,
         label_mode="categorical",
@@ -78,27 +70,24 @@ def entrenar():
 
     ds_validacion = tf.keras.utils.image_dataset_from_directory(
         RUTA_DATASET,
-        validation_split=0.15,
+        validation_split=0.20,
         subset="validation",
-        seed=73,
+        seed=42,
         image_size=TAM_IMG,
         batch_size=BATCH_SIZE,
         label_mode="categorical",
     )
 
-    # Exportar el orden exacto de las clases para mapear predicciones durante la inferencia
     nombres_clases = ds_entrenamiento.class_names
     with open(RUTA_CLASES, "w", encoding="utf-8") as f:
         json.dump(nombres_clases, f, ensure_ascii=False, indent=2)
 
-    # Optimizar lectura de lotes en memoria y precarga asíncrona
     autotune = tf.data.AUTOTUNE
     ds_entrenamiento = ds_entrenamiento.cache().shuffle(500).prefetch(buffer_size=autotune)
     ds_validacion = ds_validacion.cache().prefetch(buffer_size=autotune)
 
     modelo = construir_red(len(nombres_clases))
 
-    # Callbacks para guardar los mejores pesos, frenar estancamiento y ajustar tasa de aprendizaje
     lista_callbacks = [
         callbacks.ModelCheckpoint(
             RUTA_MODELO,
@@ -109,15 +98,8 @@ def entrenar():
         ),
         callbacks.EarlyStopping(
             monitor="val_loss",
-            patience=8,
+            patience=6,
             restore_best_weights=True,
-            verbose=1,
-        ),
-        callbacks.ReduceLROnPlateau(
-            monitor="val_loss",
-            factor=0.5,
-            patience=4,
-            min_lr=1e-6,
             verbose=1,
         ),
     ]
@@ -129,7 +111,6 @@ def entrenar():
         callbacks=lista_callbacks,
     )
 
-    # Generar gráficas comparativas de precisión y pérdida
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
     ax1.plot(historial.history["accuracy"], label="Entrenamiento")
     ax1.plot(historial.history["val_accuracy"], label="Validación")
