@@ -1,3 +1,6 @@
+//Zavala Arredondo Dahir Fernando
+//23170375
+//diagnostico
 public class NodoABB {
     int dato;
     NodoABB izquierdo;

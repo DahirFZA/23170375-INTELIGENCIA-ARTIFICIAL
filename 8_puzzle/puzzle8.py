@@ -1,3 +1,6 @@
+#Zavala Arredondo Dahir Fernando
+#23170375
+#8 puzzle tarea 1
 import time
 import heapq
 from collections import deque
@@ -115,7 +118,6 @@ def imprimir_tablero(estado):
 
 
 if __name__ == "__main__":
-    # Estado inicial resoluble (a 8 movimientos de la meta)
     estado_inicial = (1, 2, 3, 4, 0, 6, 7, 5, 8)
 
     print("Estado inicial:")

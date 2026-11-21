@@ -1,3 +1,5 @@
+#Zavala Arredondo Dahir Fernando
+#23170375
 import os
 import numpy as np
 import matplotlib
@@ -11,24 +13,19 @@ from sklearn.metrics import mean_squared_error, r2_score
 
 
 def main():
-    # Generar conjunto de datos sintético con ruido controlado
     np.random.seed(42)
-    X = 2.5 * np.random.rand(60, 1) + 1.0  # Variable independiente (ej. años de experiencia)
-    y = 15.0 + 8.5 * X.squeeze() + np.random.randn(60) * 2.5  # Variable dependiente (ej. salario)
+    X = 2.5 * np.random.rand(60, 1) + 1.0 
+    y = 15.0 + 8.5 * X.squeeze() + np.random.randn(60) * 2.5 
 
-    # Dividir en entrenamiento (80%) y prueba (20%)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    # Crear y entrenar el modelo de Regresión Lineal
     modelo = LinearRegression()
     modelo.fit(X_train, y_train)
 
-    # Predicciones sobre el conjunto de prueba
     y_pred = modelo.predict(X_test)
 
-    # Métricas de rendimiento
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
 
@@ -38,7 +35,6 @@ def main():
     print(f"Error Cuadrático Medio:     {mse:.4f}")
     print(f"Coeficiente R^2:            {r2:.4f}")
 
-    # Visualización
     plt.figure(figsize=(8, 5))
     plt.scatter(X_train, y_train, color="tab:blue", alpha=0.7, label="Datos de entrenamiento")
     plt.scatter(X_test, y_test, color="tab:orange", alpha=0.9, label="Datos de prueba")

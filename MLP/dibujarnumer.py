@@ -1,3 +1,5 @@
+#Zavala Arredondo Dahir Fernando
+#23170375
 import tkinter as tk
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps
@@ -13,8 +15,6 @@ class AppDibujarNumero:
         self.tam_canvas = 280
         self.canvas = tk.Canvas(root, width=self.tam_canvas, height=self.tam_canvas, bg="black", cursor="cross")
         self.canvas.pack(pady=10)
-
-        # Imagen en memoria sincronizada con el canvas (fondo negro, trazo blanco)
         self.imagen = Image.new("L", (self.tam_canvas, self.tam_canvas), 0)
         self.draw = ImageDraw.Draw(self.imagen)
 
@@ -43,7 +43,6 @@ class AppDibujarNumero:
         self.etiqueta_resultado.config(text="Dibuja un número (0-9)")
 
     def predecir(self):
-        # Redimensionar a 28x28 píxeles como espera MNIST
         img_28 = self.imagen.resize((28, 28), Image.Resampling.LANCZOS)
         arreglo = np.array(img_28).astype("float32") / 255.0
         arreglo = arreglo.reshape(1, 28, 28)
